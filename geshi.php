@@ -3418,7 +3418,7 @@ class GeSHi {
                     // get highlighted if the language has a CSS keyword in it (like CSS, for example ;))
                     $stuff_to_parse = preg_replace_callback(
                         "/$disallowed_before_local({$keywordset})(?!\<DOT\>(?:htm|php|aspx?))$disallowed_after_local/$modifiers",
-                        array($this, 'handle_keyword_replace'),
+                        function(array $matches) { $this->handle_keyword_replace($matches); },
                         $stuff_to_parse
                         );
                 }
@@ -3437,7 +3437,7 @@ class GeSHi {
                         $this->_hmr_after = $regexp[GESHI_AFTER];
                         $stuff_to_parse = preg_replace_callback(
                             "/" . $regexp[GESHI_SEARCH] . "/{$regexp[GESHI_MODIFIERS]}",
-                            array($this, 'handle_multiline_regexps'),
+                            function(array $matches) { $this->handle_multiline_regexps($matches); },
                             $stuff_to_parse);
                         $this->_hmr_replace = false;
                         $this->_hmr_before = '';
@@ -3453,7 +3453,7 @@ class GeSHi {
                         // produce valid HTML when we match multiple lines
                         $this->_hmr_key = $key;
                         $stuff_to_parse = preg_replace_callback( "/(" . $regexp . ")/",
-                                              array($this, 'handle_multiline_regexps'), $stuff_to_parse);
+                                              function(array $matches) { $this->handle_multiline_regexps($matches); }, $stuff_to_parse);
                         $this->_hmr_key = '';
                     } else {
                         $stuff_to_parse = preg_replace( "/(" . $regexp . ")/", "<|!REG3XP$key!>\\1|>", $stuff_to_parse);
@@ -3628,7 +3628,7 @@ class GeSHi {
                 if (is_callable($this->language_data['STYLES']['REGEXPS'][$key])) {
                     $this->_rx_key = $key;
                     $stuff_to_parse = preg_replace_callback("/!REG3XP$key!(.*)\|>/U",
-                        array($this, 'handle_regexps_callback'),
+                        function(array $matches) { $this->handle_regexps_callback($matches); },
                         $stuff_to_parse);
                 } else {
                     if (!$this->use_classes) {
@@ -4731,11 +4731,9 @@ class GeSHi {
             $list = preg_replace('#\(\?\:(.)\)\?#', '\1?', $list);
             // (?:a|b|c|d|...)? => [abcd...]?
             // TODO: a|bb|c => [ac]|bb
-            static $callback_2;
-            if (!isset($callback_2)) {
-                $callback_2 = create_function('$matches', 'return "[" . str_replace("|", "", $matches[1]) . "]";');
-            }
-            $list = preg_replace_callback('#\(\?\:((?:.\|)+.)\)#', $callback_2, $list);
+            $list = preg_replace_callback('#\(\?\:((?:.\|)+.)\)#',
+                                          function(array $matches) { return [ str_replace("|", "", $matches[1])]; },
+                                          $list);
         }
         // return $list without trailing pipe
         return substr($list, 0, -1);
